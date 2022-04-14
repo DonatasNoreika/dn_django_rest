@@ -1,9 +1,15 @@
 # Create your views here.
 
 from rest_framework import generics, permissions
-from .models import Post, PostLike, Comment, CommentLike
-from .serializers import PostSerializer
+from .models import (Post,
+                     PostLike,
+                     Comment,
+                     CommentLike)
+from .serializers import (PostSerializer,
+                          CommentSerializer,
+                          AllCommentsSerializer)
 from rest_framework.exceptions import ValidationError
+
 
 class PostList(generics.ListAPIView):
     queryset = Post.objects.all()
@@ -40,3 +46,46 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
             return self.update(request, *args, **kwargs)
         else:
             raise ValidationError('Negalima koreguoti svetimų pranešimų!')
+
+
+class AllCommentsList(generics.ListCreateAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = AllCommentsSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class CommentList(generics.ListCreateAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        post = Post.objects.get(pk=self.kwargs['pk'])
+        serializer.save(user=self.request.user, post=post)
+
+    def get_queryset(self):
+        post = Post.objects.get(pk=self.kwargs['pk'])
+        return Comment.objects.filter(post=post)
+
+
+class CommentDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def delete(self, request, *args, **kwargs):
+        comment = Comment.objects.filter(pk=kwargs['pk'], user=self.request.user)
+        if comment.exists():
+            return self.destroy(request, *args, **kwargs)
+        else:
+            raise ValidationError('Negalima trinti svetimų komentarų!')
+
+    def put(self, request, *args, **kwargs):
+        comment = Comment.objects.filter(pk=kwargs['pk'], user=self.request.user)
+        if comment.exists():
+            return self.update(request, *args, **kwargs)
+        else:
+            raise ValidationError('Negalima koreguoti svetimų komentarų!')
