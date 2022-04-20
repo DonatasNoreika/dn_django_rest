@@ -8,10 +8,11 @@ from .models import (Post,
 from .serializers import (PostSerializer,
                           CommentSerializer,
                           AllCommentsSerializer,
-                          PostLikeSerializer)
+                          PostLikeSerializer,
+                          UserSerializer)
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-
+from django.contrib.auth.models import User
 
 class PostList(generics.ListAPIView):
     queryset = Post.objects.all()
@@ -117,3 +118,9 @@ class PostLikeCreate(generics.ListCreateAPIView, mixins.DestroyModelMixin):
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             raise ValidationError('Jūs nepalikote patiktuko po šiuo pranešimu!')
+
+
+class UserCreate(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (permissions.AllowAny, )
